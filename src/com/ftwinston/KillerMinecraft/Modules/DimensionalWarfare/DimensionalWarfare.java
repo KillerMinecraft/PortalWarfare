@@ -1,36 +1,25 @@
 package com.ftwinston.KillerMinecraft.Modules.DimensionalWarfare;
 
-import java.util.Collections;
-import java.util.List;
-
-import org.bukkit.ChatColor;
-import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
-import org.bukkit.WorldType;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
+import org.bukkit.event.world.PortalCreateEvent.CreateReason;
 
 import com.ftwinston.KillerMinecraft.GameMode;
-import com.ftwinston.KillerMinecraft.Helper;
 import com.ftwinston.KillerMinecraft.Option;
-import com.ftwinston.KillerMinecraft.WorldConfig;
+import com.ftwinston.KillerMinecraft.PlayerFilter;
+import com.ftwinston.KillerMinecraft.PortalHelper;
 
 public class DimensionalWarfare extends GameMode
 {
+	private final Material coreMaterial = Material.EMERALD_BLOCK;
 	public static final int allowDimensionalPicks = 0, reinforcedCores = 1;
 	Block[] coreBlocks = new Block[2];
 	int[] coreStrengths = new int[2];
@@ -67,7 +56,7 @@ public class DimensionalWarfare extends GameMode
 	}
 	
 	@Override
-	public Environment[] getWorldsToGenerate() { return new Environment[] { Environment.NORMAL, Enivironment.NORMAL }; }
+	public Environment[] getWorldsToGenerate() { return new Environment[] { Environment.NORMAL, Environment.NORMAL }; }
 	
 	@Override
 	public void handlePortal(TeleportCause cause, Location entrance, PortalHelper helper)
@@ -76,13 +65,11 @@ public class DimensionalWarfare extends GameMode
 			return;
 		
 		World toWorld;
-		double blockRatio;
 		
 		if ( entrance.getWorld() == getWorld(0) )
 			toWorld = getWorld(1);
 		else if ( entrance.getWorld() == getWorld(1) )
 			toWorld = getWorld(0);
-		}
 		else
 			return;
 		
@@ -93,13 +80,13 @@ public class DimensionalWarfare extends GameMode
 	public void onBlockBreak(BlockBreakEvent event)
     {
 		Block b = event.getBlock();
-		if ( shouldIgnoreEvent(b) || b.getTypeId() != coreMaterial )
+		if ( b.getType() != coreMaterial )
 			return;
 		
 		for ( int team=0; team<2; team++ )
-			if ( l.getBlock() == coreBlocks[team] )
+			if ( b.getLocation() == coreBlocks[team].getLocation() )
 			{
-				if ( b.getType() != Material.EMERALD_BLOCK || coreStrengths[team] <= 0 )
+				if ( b.getType() != coreMaterial || coreStrengths[team] <= 0 )
 					return;
 				
 				if ( --coreStrengths[team] < 1 )
@@ -111,21 +98,43 @@ public class DimensionalWarfare extends GameMode
 	}
 	
 	@EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-	public void onPortalCreated(org.bukkit.event.world.PortalCreateEvent event) throws EventException
+	public void onPortalCreated(org.bukkit.event.world.PortalCreateEvent event)
 	{
 		if ( event.getReason() != CreateReason.OBC_DESTINATION )
 			return;
 		
-		Block b = event.getBlocks()[0];
+		Block b = event.getBlocks().get(0);
 		
 		int team = b.getWorld() == getWorld(0) ? 1 : 2;
 		broadcastMessage(new PlayerFilter().team(team), "Warning! Portal created at " + b.getX() + ", " + b.getY() + ", " + b.getZ());
 	}
 
-	
 	@Override
-	public void gameStarted()
-	{
-		// create the "cores" and a basic team-colored buildingy thing around them
+	protected void gameStarted(boolean isNewWorlds) {
+		
+	}
+
+	@Override
+	protected void gameFinished() {
+	}
+
+
+	@Override
+	public boolean teamAllocationIsSecret() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean isAllowedToRespawn(Player player) { return true; }
+
+	@Override
+	public Location getSpawnLocation(Player player) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public String describe() {
+		return "Two teams, each in their own worlds, connected by portals. Players must defend their own \"core\" block, while trying to destroy the enemy's.";
 	}
 }
