@@ -1,0 +1,7 @@
+name: Dimensional Warfare
+main: com.ftwinston.KillerMinecraft.Modules.DimensionalWarfare.Plugin
+depend: [Killer Minecraft]
+version: 1
+load: STARTUP
+description: A game mode for Killer Minecraft
+author: FTWinston
