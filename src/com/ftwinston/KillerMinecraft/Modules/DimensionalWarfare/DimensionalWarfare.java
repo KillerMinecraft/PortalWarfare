@@ -85,7 +85,9 @@ public class DimensionalWarfare extends GameMode
 		else
 			return;
 		
-		helper.setupScaledDestination(toWorld, entrance, 1);
+		helper.setExitPortalCreationRadius(0);
+		helper.setExitPortalSearchRadius(8);
+		helper.setDestination(new Location(toWorld, entrance.getX(), entrance.getY(), entrance.getZ(), entrance.getYaw(), entrance.getPitch()));
 	}
 	
 	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -150,6 +152,6 @@ public class DimensionalWarfare extends GameMode
 	
 	@Override
 	public String describe() {
-		return "Two teams, each in their own worlds, connected by portals. Players must defend their own \"core\" block, while trying to destroy the enemy's.";
+		return "Dimensional Warfare\nTwo teams, each in their own worlds, connected by portals. Players must defend their own \"core\" block, while trying to destroy the enemy's.";
 	}
 }
