@@ -5,10 +5,12 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.event.world.PortalCreateEvent.CreateReason;
 
@@ -123,6 +125,13 @@ public class DimensionalWarfare extends GameMode
 		broadcastMessage(new PlayerFilter().team(team), "Warning! Portal created at " + b.getX() + ", " + b.getY() + ", " + b.getZ());
 	}
 
+	@EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+	public void onEvent(org.bukkit.event.entity.CreatureSpawnEvent event)
+	{
+		if ( event.getEntityType() == EntityType.PIG_ZOMBIE && event.getSpawnReason() == SpawnReason.SPAWNER_EGG )
+			event.setCancelled(true);
+	}
+	
 	@Override
 	protected void gameStarted() {
 		
