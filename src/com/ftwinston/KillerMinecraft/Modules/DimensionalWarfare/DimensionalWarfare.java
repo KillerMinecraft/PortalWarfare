@@ -144,7 +144,7 @@ public class DimensionalWarfare extends GameMode
 	public Location getSpawnLocation(Player player)
 	{
 		int team = Helper.getTeam(getGame(), player);
-		Location spawnPoint = Helper.randomizeLocation(getWorld(team == 0 ? 0 : team-1).getSpawnLocation(), 0, 0, 0, 8, 0, 8);
+		Location spawnPoint = Helper.randomizeLocation(getWorld(team <= 0 ? 0 : team-1).getSpawnLocation(), 0, 0, 0, 8, 0, 8);
 		return Helper.getSafeSpawnLocationNear(spawnPoint);
 	}
 	
