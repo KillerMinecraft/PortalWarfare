@@ -13,9 +13,11 @@ import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.event.world.PortalCreateEvent.CreateReason;
 
 import com.ftwinston.KillerMinecraft.GameMode;
+import com.ftwinston.KillerMinecraft.Helper;
 import com.ftwinston.KillerMinecraft.Option;
 import com.ftwinston.KillerMinecraft.PlayerFilter;
 import com.ftwinston.KillerMinecraft.PortalHelper;
+import com.ftwinston.KillerMinecraft.WorldConfig;
 
 public class DimensionalWarfare extends GameMode
 {
@@ -47,6 +49,16 @@ public class DimensionalWarfare extends GameMode
 			default:
 				return null;
 		}
+	}
+	
+	long worldSeed;
+	@Override
+	public void beforeWorldGeneration(int worldNumber, WorldConfig world)
+	{
+		if ( worldNumber == 0 )
+			worldSeed = world.getSeed();
+		else
+			world.setSeed(worldSeed);
 	}
 	
 	@Override
@@ -110,7 +122,7 @@ public class DimensionalWarfare extends GameMode
 	}
 
 	@Override
-	protected void gameStarted(boolean isNewWorlds) {
+	protected void gameStarted() {
 		
 	}
 
@@ -129,10 +141,13 @@ public class DimensionalWarfare extends GameMode
 	public boolean isAllowedToRespawn(Player player) { return true; }
 
 	@Override
-	public Location getSpawnLocation(Player player) {
-		// TODO Auto-generated method stub
-		return null;
+	public Location getSpawnLocation(Player player)
+	{
+		int team = Helper.getTeam(getGame(), player);
+		Location spawnPoint = Helper.randomizeLocation(getWorld(team == 0 ? 0 : team-1).getSpawnLocation(), 0, 0, 0, 8, 0, 8);
+		return Helper.getSafeSpawnLocationNear(spawnPoint);
 	}
+	
 	@Override
 	public String describe() {
 		return "Two teams, each in their own worlds, connected by portals. Players must defend their own \"core\" block, while trying to destroy the enemy's.";
