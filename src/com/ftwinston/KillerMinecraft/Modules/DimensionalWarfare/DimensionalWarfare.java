@@ -1,10 +1,13 @@
 package com.ftwinston.KillerMinecraft.Modules.DimensionalWarfare;
 
+import java.util.ArrayList;
+
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventPriority;
@@ -72,20 +75,115 @@ public class DimensionalWarfare extends GameMode
 	@Override
 	public Environment[] getWorldsToGenerate() { return new Environment[] { Environment.NORMAL, Environment.NORMAL }; }
 	
+	private World getOtherWorld(World world)
+	{
+		if ( world == getWorld(0) )
+			return getWorld(1);
+		
+		return getWorld(0);
+	}
+	
+	boolean creatingPortal = false;
+	
+	@EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+	public void onPortalCreated(org.bukkit.event.world.PortalCreateEvent event)
+	{
+		if ( creatingPortal || event.getReason() == CreateReason.OBC_DESTINATION )
+		{
+			Block b = event.getBlocks().get(0);
+			int team = b.getWorld() == getWorld(0) ? 1 : 2;
+			broadcastMessage(new PlayerFilter().team(team), "Warning! Portal detected at " + b.getX() + ", " + b.getY() + ", " + b.getZ());
+			return;
+		}
+		
+		creatingPortal = true;
+		
+		// we want to create exit portals when the entrance is created, not when a portal is used
+		// we also want to create them in EXACTLY the same place, which i can't seem to achieve using the built in stuff
+
+		World toWorld = getOtherWorld(event.getWorld());
+		
+		// look through all the blocks returned by the event, decide if they're portal or frame, and also 
+		// whether the portal faces north/south or east/west, for what data value to set
+		
+		boolean northSouth = false;
+		Block fireBlock = null, test1 = null, test2 = null;
+		ArrayList<Block> portalBlocks = new ArrayList<Block>(), obsidianBlocks = new ArrayList<Block>(); 
+		for ( Block b : event.getBlocks() )
+		{
+			// corresponding block in other world should become portal
+			Block dest = toWorld.getBlockAt(b.getLocation());
+			if ( b.getType() == Material.OBSIDIAN )
+				obsidianBlocks.add(dest);
+			else // air or fire
+			{
+				if ( b.getType() == Material.FIRE )
+					fireBlock = dest;
+				
+				portalBlocks.add(dest);
+				if ( test1 == null )
+					test1 = dest;
+				else if ( test2 == null )
+				{
+					if ( dest.getX() != test1.getX() )
+						northSouth = true;
+					else if ( dest.getZ() != test1.getZ() )
+						northSouth = false;
+					else
+						continue;
+					
+					test2 = dest;
+				}
+			}
+		}
+		
+		// place the frame
+		for ( Block b : obsidianBlocks )
+			b.setType(Material.OBSIDIAN);
+						
+		// place air blocks inside, as well as in front of & behind the frame
+		for ( Block b : portalBlocks )
+		{	
+			b.setType(Material.PORTAL);
+			if ( northSouth )
+			{
+				b.getRelative(BlockFace.NORTH).setType(Material.AIR);
+				b.getRelative(BlockFace.SOUTH).setType(Material.AIR);
+			}
+			else
+			{
+				b.getRelative(BlockFace.EAST).setType(Material.AIR);
+				b.getRelative(BlockFace.WEST).setType(Material.AIR);
+			}
+		}
+			
+		// then place the fire block that activates the portal
+		if ( fireBlock != null )
+			fireBlock.setType(Material.FIRE);
+		
+		creatingPortal = false;
+	}
+	
+	@EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+	public void onEvent(BlockBreakEvent event)
+	{
+		Block b = event.getBlock();
+		if ( b.getType() != Material.PORTAL )
+			return;
+		
+		// portal was broken ... break the corresponding portal in the other world
+		
+		
+		// ... and an obsidian block from its portal frame
+	}
+	
 	@Override
 	public void handlePortal(TeleportCause cause, Location entrance, PortalHelper helper)
 	{
 		if ( cause != TeleportCause.NETHER_PORTAL )
 			return;
 		
-		World toWorld;
-		
-		if ( entrance.getWorld() == getWorld(0) )
-			toWorld = getWorld(1);
-		else if ( entrance.getWorld() == getWorld(1) )
-			toWorld = getWorld(0);
-		else
-			return;
+		World toWorld = getOtherWorld(entrance.getWorld());
 		
 		helper.setExitPortalCreationRadius(0);
 		helper.setExitPortalSearchRadius(8);
@@ -113,18 +211,6 @@ public class DimensionalWarfare extends GameMode
 			}
 	}
 	
-	@EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-	public void onPortalCreated(org.bukkit.event.world.PortalCreateEvent event)
-	{
-		if ( event.getReason() != CreateReason.OBC_DESTINATION )
-			return;
-		
-		Block b = event.getBlocks().get(0);
-		
-		int team = b.getWorld() == getWorld(0) ? 1 : 2;
-		broadcastMessage(new PlayerFilter().team(team), "Warning! Portal created at " + b.getX() + ", " + b.getY() + ", " + b.getZ());
-	}
-
 	@EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
 	public void onEvent(org.bukkit.event.entity.CreatureSpawnEvent event)
 	{
