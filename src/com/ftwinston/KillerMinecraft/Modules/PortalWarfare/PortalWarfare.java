@@ -1,4 +1,4 @@
-package com.ftwinston.KillerMinecraft.Modules.DimensionalWarfare;
+package com.ftwinston.KillerMinecraft.Modules.PortalWarfare;
 
 import java.util.ArrayList;
 
@@ -24,7 +24,7 @@ import com.ftwinston.KillerMinecraft.PlayerFilter;
 import com.ftwinston.KillerMinecraft.PortalHelper;
 import com.ftwinston.KillerMinecraft.WorldConfig;
 
-public class DimensionalWarfare extends GameMode
+public class PortalWarfare extends GameMode
 {
 	private final Material coreMaterial = Material.EMERALD_BLOCK;
 	public static final int allowDimensionalPicks = 0, reinforcedCores = 1;
@@ -83,6 +83,11 @@ public class DimensionalWarfare extends GameMode
 		return getWorld(0);
 	}
 	
+	private int getTeamForWorld(World world)
+	{
+		return world == getWorld(0) ? 1 : 2;
+	}
+	
 	boolean creatingPortal = false;
 	
 	@EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -91,8 +96,7 @@ public class DimensionalWarfare extends GameMode
 		if ( creatingPortal || event.getReason() == CreateReason.OBC_DESTINATION )
 		{
 			Block b = event.getBlocks().get(0);
-			int team = b.getWorld() == getWorld(0) ? 1 : 2;
-			broadcastMessage(new PlayerFilter().team(team), "Warning! Portal detected at " + b.getX() + ", " + b.getY() + ", " + b.getZ());
+			broadcastMessage(new PlayerFilter().team(getTeamForWorld(b.getWorld())), "Warning! Portal detected at " + b.getX() + ", " + b.getY() + ", " + b.getZ());
 			return;
 		}
 		

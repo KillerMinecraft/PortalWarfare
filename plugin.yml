@@ -1,5 +1,5 @@
-name: Dimensional Warfare
-main: com.ftwinston.KillerMinecraft.Modules.DimensionalWarfare.Plugin
+name: Portal Warfare
+main: com.ftwinston.KillerMinecraft.Modules.PortalWarfare.Plugin
 depend: [Killer Minecraft]
 version: 1
 load: STARTUP
