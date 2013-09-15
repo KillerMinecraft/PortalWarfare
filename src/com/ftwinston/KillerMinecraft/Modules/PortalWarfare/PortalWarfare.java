@@ -16,6 +16,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.event.world.PortalCreateEvent.CreateReason;
+import org.bukkit.inventory.ItemStack;
 
 import com.ftwinston.KillerMinecraft.GameMode;
 import com.ftwinston.KillerMinecraft.Helper;
@@ -28,7 +29,7 @@ public class PortalWarfare extends GameMode
 {
 	private final Material coreMaterial = Material.EMERALD_BLOCK;
 	public static final int allowDimensionalPicks = 0, reinforcedCores = 1;
-	Block[] coreBlocks = new Block[2];
+	int coreBlockX, coreBlockY, coreBlockZ;
 	int[] coreStrengths = new int[2];
 	
 	@Override
@@ -81,6 +82,12 @@ public class PortalWarfare extends GameMode
 			return getWorld(1);
 		
 		return getWorld(0);
+	}
+	
+	private Block getOtherWorldBlock(Block b)
+	{
+		World world = getOtherWorld(b.getWorld());
+		return world.getBlockAt(b.getX(), b.getY(), b.getZ());
 	}
 	
 	private int getTeamForWorld(World world)
@@ -149,15 +156,16 @@ public class PortalWarfare extends GameMode
 		for ( Block b : portalBlocks )
 		{	
 			b.setType(Material.PORTAL);
+			
 			if ( northSouth )
 			{
-				b.getRelative(BlockFace.NORTH).setType(Material.AIR);
-				b.getRelative(BlockFace.SOUTH).setType(Material.AIR);
+				setBlockIfNotCore(b.getRelative(BlockFace.NORTH), Material.AIR);
+				setBlockIfNotCore(b.getRelative(BlockFace.SOUTH), Material.AIR);
 			}
 			else
 			{
-				b.getRelative(BlockFace.EAST).setType(Material.AIR);
-				b.getRelative(BlockFace.WEST).setType(Material.AIR);
+				setBlockIfNotCore(b.getRelative(BlockFace.EAST), Material.AIR);
+				setBlockIfNotCore(b.getRelative(BlockFace.WEST), Material.AIR);
 			}
 		}
 			
@@ -168,17 +176,10 @@ public class PortalWarfare extends GameMode
 		creatingPortal = false;
 	}
 	
-	@EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-	public void onEvent(BlockBreakEvent event)
+	private void setBlockIfNotCore(Block b, Material type)
 	{
-		Block b = event.getBlock();
-		if ( b.getType() != Material.PORTAL )
-			return;
-		
-		// portal was broken ... break the corresponding portal in the other world
-		
-		
-		// ... and an obsidian block from its portal frame
+		if ( b.getType() != coreMaterial || b.getX() != coreBlockX || b.getZ() != coreBlockZ || b.getY() != coreBlockY )
+			b.setType(type);
 	}
 	
 	@Override
@@ -198,25 +199,52 @@ public class PortalWarfare extends GameMode
 	public void onBlockBreak(BlockBreakEvent event)
     {
 		Block b = event.getBlock();
-		if ( b.getType() != coreMaterial )
-			return;
-		
-		for ( int team=0; team<2; team++ )
-			if ( b.getLocation() == coreBlocks[team].getLocation() )
+		if ( b.getType() == coreMaterial )
+		{		
+			if ( b.getX() == coreBlockX && b.getZ() == coreBlockZ && b.getY() == coreBlockY )
 			{
+				int team = getTeamForWorld(event.getBlock().getWorld()) - 1;
 				if ( b.getType() != coreMaterial || coreStrengths[team] <= 0 )
 					return;
 				
 				if ( --coreStrengths[team] < 1 )
-				{
 					finishGame();
-					return;
-				}				
+				
+				return;
 			}
+		}
+		
+		
+		if ( b.getType() == Material.PORTAL )
+		{
+			// portal was broken (by creative mode) ... break the corresponding portal in the other world
+			getOtherWorldBlock(event.getBlock()).setType(Material.AIR);
+			return;
+		}
+		else if ( b.getType() == Material.OBSIDIAN ) 
+		{
+			// if this was part of a portal frame, break the corresponding block in other world
+			if ( b.getRelative(BlockFace.NORTH).getType() == Material.PORTAL
+			  || b.getRelative(BlockFace.SOUTH).getType() == Material.PORTAL
+			  || b.getRelative(BlockFace.EAST).getType() == Material.PORTAL
+			  || b.getRelative(BlockFace.WEST).getType() == Material.PORTAL )
+			{
+				getOtherWorldBlock(event.getBlock()).setType(Material.AIR);
+				return;
+			}
+		}
+		
+		// if broken with a dimensional pick, break the corresponding block in other world
+		ItemStack item = event.getPlayer().getItemInHand(); 
+		if ( item != null && item.getType() == Plugin.dimensionalPickMaterial && item.getEnchantmentLevel(Plugin.dimensionalPickEnchant) > 0 )
+		{
+			getOtherWorldBlock(event.getBlock()).setType(Material.AIR);
+			item.setDurability((short)Math.max(item.getDurability() - Plugin.dimensionalPickDurabilityLoss, 0));
+		}
 	}
-	
+
 	@EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-	public void onEvent(org.bukkit.event.entity.CreatureSpawnEvent event)
+	public void onCreatureSpawn(org.bukkit.event.entity.CreatureSpawnEvent event)
 	{
 		if ( event.getEntityType() == EntityType.PIG_ZOMBIE && event.getSpawnReason() == SpawnReason.SPAWNER_EGG )
 			event.setCancelled(true);
