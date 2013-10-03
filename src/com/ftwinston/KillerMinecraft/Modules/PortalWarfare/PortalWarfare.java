@@ -2,6 +2,7 @@ package com.ftwinston.KillerMinecraft.Modules.PortalWarfare;
 
 import java.util.ArrayList;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -24,6 +25,8 @@ import com.ftwinston.KillerMinecraft.Option;
 import com.ftwinston.KillerMinecraft.PlayerFilter;
 import com.ftwinston.KillerMinecraft.PortalHelper;
 import com.ftwinston.KillerMinecraft.WorldConfig;
+import com.ftwinston.KillerMinecraft.Configuration.TeamInfo;
+import com.ftwinston.KillerMinecraft.Configuration.ToggleOption;
 
 public class PortalWarfare extends GameMode
 {
@@ -35,19 +38,41 @@ public class PortalWarfare extends GameMode
 	@Override
 	public int getMinPlayers() { return 2; } // one player on each team is our minimum
 	
+	TeamInfo redTeam = new TeamInfo() {
+		@Override
+		public String getName() { return "red team"; }
+		@Override
+		public ChatColor getChatColor() { return ChatColor.RED; }
+		@Override
+		public byte getWoolColor() { return (byte)0xE; }
+	};
+	TeamInfo blueTeam = new TeamInfo() {
+		@Override
+		public String getName() { return "blue team"; }
+		@Override
+		public ChatColor getChatColor() { return ChatColor.BLUE; }
+		@Override
+		public byte getWoolColor() { return (byte)0xB; }
+	};
+	
+	TeamInfo[] teams = new TeamInfo[] { redTeam, blueTeam };
+	
+	@Override
+	public TeamInfo[] getTeams() { return teams; }
+	
 	@Override
 	public Option[] setupOptions()
 	{
 		Option[] options = {
-			new Option("Allow 'Dimensional' pick axes", true),
-			new Option("Reinforced cores", false),
+			new ToggleOption("Allow 'Dimensional' pick axes", true),
+			new ToggleOption("Reinforced cores", false),
 		};
 		
 		return options;
 	}
 	
 	@Override
-	public String getHelpMessage(int num, int team)
+	public String getHelpMessage(int num, TeamInfo team)
 	{
 		switch ( num )
 		{
@@ -90,9 +115,9 @@ public class PortalWarfare extends GameMode
 		return world.getBlockAt(b.getX(), b.getY(), b.getZ());
 	}
 	
-	private int getTeamForWorld(World world)
-	{
-		return world == getWorld(0) ? 1 : 2;
+	private TeamInfo getTeamForWorld(World world)
+	{		
+		return world == getWorld(0) ? redTeam : blueTeam;
 	}
 	
 	boolean creatingPortal = false;
@@ -183,16 +208,15 @@ public class PortalWarfare extends GameMode
 	}
 	
 	@Override
-	public void handlePortal(TeleportCause cause, Location entrance, PortalHelper helper)
+	public void handlePortal(TeleportCause cause, Location entityLoc, PortalHelper helper)
 	{
 		if ( cause != TeleportCause.NETHER_PORTAL )
 			return;
-		
-		World toWorld = getOtherWorld(entrance.getWorld());
-		
-		helper.setExitPortalCreationRadius(0);
-		helper.setExitPortalSearchRadius(8);
-		helper.setDestination(new Location(toWorld, entrance.getX(), entrance.getY(), entrance.getZ(), entrance.getYaw(), entrance.getPitch()));
+
+		// however you move INTO a portal, you should emerge at exactly the same location, in the other world.
+		World toWorld = getOtherWorld(entityLoc.getWorld());
+		helper.setUseExitPortal(false);
+		helper.setDestination(new Location(toWorld, entityLoc.getX(), entityLoc.getY(), entityLoc.getZ(), entityLoc.getYaw(), entityLoc.getPitch()));
 	}
 	
 	@EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -203,7 +227,7 @@ public class PortalWarfare extends GameMode
 		{		
 			if ( b.getX() == coreBlockX && b.getZ() == coreBlockZ && b.getY() == coreBlockY )
 			{
-				int team = getTeamForWorld(event.getBlock().getWorld()) - 1;
+				int team = indexOfTeam(getTeamForWorld(event.getBlock().getWorld()));
 				if ( b.getType() != coreMaterial || coreStrengths[team] <= 0 )
 					return;
 				
@@ -261,10 +285,7 @@ public class PortalWarfare extends GameMode
 
 
 	@Override
-	public boolean teamAllocationIsSecret() {
-		// TODO Auto-generated method stub
-		return false;
-	}
+	public boolean teamAllocationIsSecret() { return false;	}
 
 	@Override
 	public boolean isAllowedToRespawn(Player player) { return true; }
@@ -272,13 +293,8 @@ public class PortalWarfare extends GameMode
 	@Override
 	public Location getSpawnLocation(Player player)
 	{
-		int team = Helper.getTeam(getGame(), player);
-		Location spawnPoint = Helper.randomizeLocation(getWorld(team <= 0 ? 0 : team-1).getSpawnLocation(), 0, 0, 0, 8, 0, 8);
+		World world = getWorld(Helper.getTeam(getGame(), player) == redTeam ? 0 : 1);
+		Location spawnPoint = Helper.randomizeLocation(world.getSpawnLocation(), 0, 0, 0, 8, 0, 8);
 		return Helper.getSafeSpawnLocationNear(spawnPoint);
-	}
-	
-	@Override
-	public String describe() {
-		return "Dimensional Warfare\nTwo teams, each in their own worlds, connected by portals. Players must defend their own \"core\" block, while trying to destroy the enemy's.";
 	}
 }

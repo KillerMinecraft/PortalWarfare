@@ -16,14 +16,20 @@ import com.ftwinston.KillerMinecraft.GameModePlugin;
 public class Plugin extends GameModePlugin
 {
 	@Override
+	public Material getMenuIcon() { return Material.PORTAL; }
+	
+	@Override
+	public String[] getDescriptionText() { return new String[] {"Two teams, each in their own worlds,", "connected by portals. Players must", "defend their own \"core\" block,", "while trying to destroy the enemy's."}; }
+	
+	@Override
 	public GameMode createInstance()
 	{
 		return new PortalWarfare();
 	}
 	
-	static final Enchantment dimensionalPickEnchant = Enchantment.ARROW_FIRE;
+	static final Enchantment dimensionalPickEnchant = Enchantment.KNOCKBACK;
 	static final Material dimensionalPickMaterial = Material.IRON_PICKAXE;
-	static final short dimensionalPickDurabilityLoss = 10; // extra durability loss when dimensionally picking
+	static final short dimensionalPickDurabilityLoss = 10; // lose this much durability every use
 	
 	@Override
 	protected ArrayList<Recipe> createCustomRecipes()
