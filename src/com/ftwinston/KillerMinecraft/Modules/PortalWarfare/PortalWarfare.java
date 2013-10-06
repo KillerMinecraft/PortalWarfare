@@ -55,17 +55,18 @@ public class PortalWarfare extends GameMode
 		public byte getWoolColor() { return (byte)0xB; }
 	};
 	
-	TeamInfo[] teams = new TeamInfo[] { redTeam, blueTeam };
+	public PortalWarfare()
+	{
+		setTeams(new TeamInfo[] { redTeam, blueTeam });
+	}
 	
-	@Override
-	public TeamInfo[] getTeams() { return teams; }
 	
 	@Override
 	public Option[] setupOptions()
 	{
 		Option[] options = {
-			new ToggleOption("Allow 'Dimensional' pick axes", true),
-			new ToggleOption("Reinforced cores", false),
+			new ToggleOption("Allow 'Dimensional' pick axes", true, "A pickaxe that breaks blocks", "in both worlds simultaneously.", "To build, craft an obsidian pickaxe."),
+			new ToggleOption("Reinforced cores", false, "In all honesty, I forget", "what this was meant to be.", "It currently does nothing."),
 		};
 		
 		return options;
@@ -281,11 +282,8 @@ public class PortalWarfare extends GameMode
 
 	@Override
 	protected void gameFinished() {
+		
 	}
-
-
-	@Override
-	public boolean teamAllocationIsSecret() { return false;	}
 
 	@Override
 	public boolean isAllowedToRespawn(Player player) { return true; }
