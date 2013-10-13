@@ -254,7 +254,9 @@ public class PortalWarfare extends GameMode
 			if ( b.getRelative(BlockFace.NORTH).getType() == Material.PORTAL
 			  || b.getRelative(BlockFace.SOUTH).getType() == Material.PORTAL
 			  || b.getRelative(BlockFace.EAST).getType() == Material.PORTAL
-			  || b.getRelative(BlockFace.WEST).getType() == Material.PORTAL )
+			  || b.getRelative(BlockFace.WEST).getType() == Material.PORTAL
+			  || b.getRelative(BlockFace.UP).getType() == Material.PORTAL
+			  || b.getRelative(BlockFace.DOWN).getType() == Material.PORTAL )
 			{
 				getOtherWorldBlock(event.getBlock()).setType(Material.AIR);
 				return;
