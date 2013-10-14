@@ -395,9 +395,9 @@ public class PortalWarfare extends GameMode
 	protected void gameFinished()
 	{
 		if ( redTeam.score.getScore() <= 0 )
-			broadcastMessage("The blue team destroyed the red core, and win the game!");
+			broadcastMessage("The " + blueTeam.getChatColor() + "blue team " + ChatColor.RESET + " destroyed the red core, and win the game!");
 		else if ( blueTeam.score.getScore() <= 0 )
-			broadcastMessage("The red team destroyed the blue core, and win the game!");
+			broadcastMessage("The " + redTeam.getChatColor() + "red team " + ChatColor.RESET + "destroyed the blue core, and win the game!");
 		else
 			broadcastMessage("Game drawn.");
 	}
