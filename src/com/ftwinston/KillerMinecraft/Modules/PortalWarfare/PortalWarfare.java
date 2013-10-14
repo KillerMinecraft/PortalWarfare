@@ -2,9 +2,11 @@ package com.ftwinston.KillerMinecraft.Modules.PortalWarfare;
 
 import java.util.ArrayList;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
@@ -18,6 +20,10 @@ import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 import org.bukkit.event.world.PortalCreateEvent.CreateReason;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scoreboard.DisplaySlot;
+import org.bukkit.scoreboard.Objective;
+import org.bukkit.scoreboard.Score;
+import org.bukkit.scoreboard.Scoreboard;
 
 import com.ftwinston.KillerMinecraft.GameMode;
 import com.ftwinston.KillerMinecraft.Helper;
@@ -30,17 +36,19 @@ import com.ftwinston.KillerMinecraft.Configuration.ToggleOption;
 
 public class PortalWarfare extends GameMode
 {
-	private final Material coreMaterial = Material.EMERALD_BLOCK;
-	
+	private final Material coreMaterial = Material.EMERALD_BLOCK, fortMaterial = Material.WOOL;
 	private ToggleOption allowDimensionalPicks, reinforcedCores;
-	
 	int coreBlockX, coreBlockY, coreBlockZ;
-	int[] coreStrengths = new int[2];
 	
 	@Override
 	public int getMinPlayers() { return 2; } // one player on each team is our minimum
 	
-	TeamInfo redTeam = new TeamInfo() {
+	abstract class PortalTeamInfo extends TeamInfo
+	{
+		public Score score;
+	}
+	
+	PortalTeamInfo redTeam = new PortalTeamInfo() {
 		@Override
 		public String getName() { return "red team"; }
 		@Override
@@ -48,7 +56,7 @@ public class PortalWarfare extends GameMode
 		@Override
 		public byte getWoolColor() { return (byte)0xE; }
 	};
-	TeamInfo blueTeam = new TeamInfo() {
+	PortalTeamInfo blueTeam = new PortalTeamInfo() {
 		@Override
 		public String getName() { return "blue team"; }
 		@Override
@@ -57,11 +65,12 @@ public class PortalWarfare extends GameMode
 		public byte getWoolColor() { return (byte)0xB; }
 	};
 	
+	PortalTeamInfo[] teams = new PortalTeamInfo[] { redTeam, blueTeam };
+	
 	public PortalWarfare()
 	{
-		setTeams(new TeamInfo[] { redTeam, blueTeam });
+		setTeams(teams);
 	}
-	
 	
 	@Override
 	public Option[] setupOptions()
@@ -85,6 +94,30 @@ public class PortalWarfare extends GameMode
 		}
 	}
 	
+	Objective objective;
+	
+	@Override
+	public Scoreboard createScoreboard()
+	{
+		Scoreboard scoreboard = super.createScoreboard();
+		
+		objective = scoreboard.registerNewObjective("cores", "dummy");
+		objective.setDisplaySlot(DisplaySlot.SIDEBAR);
+		objective.setDisplayName("Core strength");
+		
+		OfflinePlayer fake = Bukkit.getServer().getOfflinePlayer(redTeam.getName());
+		Score score = objective.getScore(fake);
+		score.setScore(25);
+		redTeam.score = score;
+		
+		fake = Bukkit.getServer().getOfflinePlayer(blueTeam.getName());
+		score = objective.getScore(fake);
+		score.setScore(25);
+		blueTeam.score = score;
+		
+		return scoreboard;
+	}
+
 	long worldSeed;
 	@Override
 	public void beforeWorldGeneration(int worldNumber, WorldConfig world)
@@ -230,12 +263,16 @@ public class PortalWarfare extends GameMode
 		{		
 			if ( b.getX() == coreBlockX && b.getZ() == coreBlockZ && b.getY() == coreBlockY )
 			{
-				int team = indexOfTeam(getTeamForWorld(event.getBlock().getWorld()));
-				if ( b.getType() != coreMaterial || coreStrengths[team] <= 0 )
+				PortalTeamInfo team = (PortalTeamInfo)getTeamForWorld(event.getBlock().getWorld());
+				if ( b.getType() != coreMaterial || team.score.getScore() <= 0 )
 					return;
 				
-				if ( --coreStrengths[team] < 1 )
+				int score = team.score.getScore() - 1;
+				team.score.setScore(score);
+				if ( score < 1 )
 					finishGame();
+				else
+					event.setCancelled(true);
 				
 				return;
 			}
@@ -284,13 +321,12 @@ public class PortalWarfare extends GameMode
 		// create "cores" ... first, pick a location near to the spawn
 		Location loc = getWorld(0).getSpawnLocation();
 		loc = Helper.randomizeLocation(loc, 30, 0, 30, 40, 0, 40);
-		loc.setY(Helper.getHighestBlockYAt(loc.getChunk(), loc.getBlockX(), loc.getBlockZ()) + 2);
+		loc.setY(getWorld(0).getHighestBlockYAt(loc.getBlockX(), loc.getBlockZ()) + 2);
 		
 		coreBlockX = loc.getBlockX(); coreBlockY = loc.getBlockY(); coreBlockZ = loc.getBlockZ();
 		
 		// create the core block and surround it with a wee bit of a fort
 		World[] worlds = new World[] { getWorld(0), getWorld(1) };
-		TeamInfo[] teams = new TeamInfo[] { redTeam, blueTeam };
 		
 		for ( int i=0; i<2; i++ )
 		{
@@ -305,44 +341,70 @@ public class PortalWarfare extends GameMode
 						b.setType(Material.AIR);
 					}
 			
-			world.getBlockAt(coreBlockX, coreBlockY, coreBlockZ).setType(Material.EMERALD_BLOCK);
+			world.getBlockAt(coreBlockX, coreBlockY, coreBlockZ).setType(coreMaterial);
 			
 			for ( int x = coreBlockX - 3; x <= coreBlockX + 3; x ++)
 				for ( int z = coreBlockZ - 3; z <= coreBlockZ + 3; z ++)
 					for ( int y = coreBlockY - 5; y <= coreBlockY - 3; y ++)
 					{
 						Block b = world.getBlockAt(x, y, z);
-						b.setType(Material.WOOL);
+						b.setType(fortMaterial);
 						b.setData(team.getWoolColor());
 					}
 			
 			for ( int x = coreBlockX - 3; x <= coreBlockX + 3; x ++)
 			{
 				Block b = world.getBlockAt(x, coreBlockY-2, coreBlockZ - 3);
-				b.setType(Material.WOOL);
+				b.setType(fortMaterial);
 				b.setData(team.getWoolColor());
 				
 				b = world.getBlockAt(x, coreBlockY-2, coreBlockZ + 3);
-				b.setType(Material.WOOL);
+				b.setType(fortMaterial);
 				b.setData(team.getWoolColor());
 			}
 			
 			for ( int z = coreBlockZ - 3; z <= coreBlockZ + 3; z ++)
 			{
 				Block b = world.getBlockAt(coreBlockX - 3, coreBlockY-2, z);
-				b.setType(Material.WOOL);
+				b.setType(fortMaterial);
 				b.setData(team.getWoolColor());
 				
 				b = world.getBlockAt(coreBlockX + 3, coreBlockY-2, z);
-				b.setType(Material.WOOL);
+				b.setType(fortMaterial);
+				b.setData(team.getWoolColor());
+			}
+			
+			
+			for ( int y = coreBlockY - 8; y <= coreBlockY - 3; y ++)
+			{
+				Block b = world.getBlockAt(coreBlockX - 3, y, coreBlockZ - 3);
+				b.setType(fortMaterial);
+				b.setData(team.getWoolColor());
+				
+				b = world.getBlockAt(coreBlockX + 3, y, coreBlockZ - 3);
+				b.setType(fortMaterial);
+				b.setData(team.getWoolColor());
+				
+				b = world.getBlockAt(coreBlockX - 3, y, coreBlockZ + 3);
+				b.setType(fortMaterial);
+				b.setData(team.getWoolColor());
+				
+				b = world.getBlockAt(coreBlockX + 3, y, coreBlockZ + 3);
+				b.setType(fortMaterial);
 				b.setData(team.getWoolColor());
 			}
 		}
 	}
 
 	@Override
-	protected void gameFinished() {
-		
+	protected void gameFinished()
+	{
+		if ( redTeam.score.getScore() <= 0 )
+			broadcastMessage("The blue team destroyed the red core, and win the game!");
+		else if ( blueTeam.score.getScore() <= 0 )
+			broadcastMessage("The red team destroyed the blue core, and win the game!");
+		else
+			broadcastMessage("Game drawn.");
 	}
 
 	@Override
