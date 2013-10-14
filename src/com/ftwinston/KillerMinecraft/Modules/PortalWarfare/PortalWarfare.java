@@ -374,24 +374,19 @@ public class PortalWarfare extends GameMode
 				b.setData(team.getWoolColor());
 			}
 			
+			int[] xs = new int[] { coreBlockX - 3, coreBlockX + 3, coreBlockX - 3, coreBlockX + 3 }, zs = new int[] { coreBlockZ + 3, coreBlockZ + 3, coreBlockZ - 3, coreBlockZ - 3 }; 
 			
-			for ( int y = coreBlockY - 8; y <= coreBlockY - 3; y ++)
+			for ( int j=0; j<4; j++ )
 			{
-				Block b = world.getBlockAt(coreBlockX - 3, y, coreBlockZ - 3);
-				b.setType(fortMaterial);
-				b.setData(team.getWoolColor());
-				
-				b = world.getBlockAt(coreBlockX + 3, y, coreBlockZ - 3);
-				b.setType(fortMaterial);
-				b.setData(team.getWoolColor());
-				
-				b = world.getBlockAt(coreBlockX - 3, y, coreBlockZ + 3);
-				b.setType(fortMaterial);
-				b.setData(team.getWoolColor());
-				
-				b = world.getBlockAt(coreBlockX + 3, y, coreBlockZ + 3);
-				b.setType(fortMaterial);
-				b.setData(team.getWoolColor());
+				int y = coreBlockY - 6;
+				Block b = world.getBlockAt(xs[j], y, zs[j]);
+				while ( y > 0 && (b.isEmpty() || b.isLiquid()) )
+				{
+					b.setType(fortMaterial);
+					b.setData(team.getWoolColor());
+					y--;
+					b = world.getBlockAt(xs[j], y, zs[j]);
+				}
 			}
 		}
 	}
