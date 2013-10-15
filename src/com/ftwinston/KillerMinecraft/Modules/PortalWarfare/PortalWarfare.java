@@ -105,12 +105,12 @@ public class PortalWarfare extends GameMode
 		objective.setDisplaySlot(DisplaySlot.SIDEBAR);
 		objective.setDisplayName("Core strength");
 		
-		OfflinePlayer fake = Bukkit.getServer().getOfflinePlayer(redTeam.getName());
+		OfflinePlayer fake = Bukkit.getServer().getOfflinePlayer(redTeam.getChatColor() + redTeam.getName());
 		Score score = objective.getScore(fake);
 		score.setScore(25);
 		redTeam.score = score;
 		
-		fake = Bukkit.getServer().getOfflinePlayer(blueTeam.getName());
+		fake = Bukkit.getServer().getOfflinePlayer(blueTeam.getChatColor() + blueTeam.getName());
 		score = objective.getScore(fake);
 		score.setScore(25);
 		blueTeam.score = score;
