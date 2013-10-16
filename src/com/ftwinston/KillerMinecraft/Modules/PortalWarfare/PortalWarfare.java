@@ -37,7 +37,7 @@ import com.ftwinston.KillerMinecraft.Configuration.ToggleOption;
 public class PortalWarfare extends GameMode
 {
 	private final Material coreMaterial = Material.EMERALD_BLOCK, fortMaterial = Material.WOOL;
-	private ToggleOption allowDimensionalPicks, reinforcedCores;
+	private ToggleOption allowDimensionalPicks;
 	int coreBlockX, coreBlockY, coreBlockZ;
 	
 	@Override
@@ -76,9 +76,8 @@ public class PortalWarfare extends GameMode
 	public Option[] setupOptions()
 	{
 		allowDimensionalPicks = new ToggleOption("Allow 'Dimensional' pick axes", true, "A pickaxe that breaks blocks", "in both worlds simultaneously.", "To build, craft an obsidian pickaxe.");
-		reinforcedCores = new ToggleOption("Reinforced cores", false, "In all honesty, I forget", "what this was meant to be.", "It currently does nothing.");
 		
-		Option[] options = { allowDimensionalPicks, reinforcedCores };
+		Option[] options = { allowDimensionalPicks };
 		
 		return options;
 	}
@@ -89,6 +88,17 @@ public class PortalWarfare extends GameMode
 		switch ( num )
 		{
 			case 0:
+				return "Each team spawns in their own world. The worlds are identical.";
+			case 1:
+				return "Near each spawn is a small team-colored fort, with an emerald block on top.";
+			case 2:
+				return "Destroying the other team's emerald decreases their score. When it reaches zero, the other team wins.";
+			case 3:
+				return "Move between the two worlds by building a nether portal. Portals emerge in the exact same location in the other world.";
+			case 4:
+				return "Players will receive a warning message when a portal is created into their world, telling them the location.";
+			case 5:
+				return allowDimensionalPicks.isEnabled() ? "Craft a 'dimensional' pick using obsidian. This breaks blocks in both worlds when used!" : null;
 			default:
 				return null;
 		}
