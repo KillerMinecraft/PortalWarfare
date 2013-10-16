@@ -28,7 +28,6 @@ import org.bukkit.scoreboard.Scoreboard;
 import com.ftwinston.KillerMinecraft.GameMode;
 import com.ftwinston.KillerMinecraft.Helper;
 import com.ftwinston.KillerMinecraft.Option;
-import com.ftwinston.KillerMinecraft.PlayerFilter;
 import com.ftwinston.KillerMinecraft.PortalHelper;
 import com.ftwinston.KillerMinecraft.WorldConfig;
 import com.ftwinston.KillerMinecraft.Configuration.TeamInfo;
@@ -96,7 +95,7 @@ public class PortalWarfare extends GameMode
 			case 3:
 				return "Move between the two worlds by building a nether portal. Portals emerge in the exact same location in the other world.";
 			case 4:
-				return "Players will receive a warning message when a portal is created into their world, telling them the location.";
+				return "Players will receive a warning message when a portal is created, telling them the location.";
 			case 5:
 				return allowDimensionalPicks.isEnabled() ? "Craft a 'dimensional' pick using obsidian. This breaks blocks in both worlds when used!" : null;
 			default:
@@ -174,7 +173,7 @@ public class PortalWarfare extends GameMode
 		if ( creatingPortal || event.getReason() == CreateReason.OBC_DESTINATION )
 		{
 			Block b = event.getBlocks().get(0);
-			broadcastMessage(new PlayerFilter().team(getTeamForWorld(b.getWorld())), "Warning! Portal detected at " + b.getX() + ", " + b.getY() + ", " + b.getZ());
+			broadcastMessage("Warning! Portal created at " + b.getX() + ", " + b.getY() + ", " + b.getZ());
 			return;
 		}
 		
