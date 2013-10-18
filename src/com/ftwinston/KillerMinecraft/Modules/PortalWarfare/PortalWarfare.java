@@ -417,7 +417,7 @@ public class PortalWarfare extends GameMode
 	@Override
 	public Location getSpawnLocation(Player player)
 	{
-		World world = getWorld(Helper.getTeam(getGame(), player) == redTeam ? 0 : 1);
+		World world = getWorld(getTeam(player) == redTeam ? 0 : 1);
 		Location spawnPoint = Helper.randomizeLocation(world.getSpawnLocation(), 0, 0, 0, 8, 0, 8);
 		return Helper.getSafeSpawnLocationNear(spawnPoint);
 	}
