@@ -412,9 +412,6 @@ public class PortalWarfare extends GameMode
 	}
 
 	@Override
-	public boolean isAllowedToRespawn(Player player) { return true; }
-
-	@Override
 	public Location getSpawnLocation(Player player)
 	{
 		World world = getWorld(getTeam(player) == redTeam ? 0 : 1);
