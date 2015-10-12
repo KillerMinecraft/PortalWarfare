@@ -1,6 +1,6 @@
-name: Portal Warfare
+name: Portal_Warfare
 main: com.ftwinston.KillerMinecraft.Modules.PortalWarfare.Plugin
-depend: [Killer Minecraft]
+depend: [Killer_Minecraft]
 version: 1
 load: STARTUP
 description: A game mode for Killer Minecraft
