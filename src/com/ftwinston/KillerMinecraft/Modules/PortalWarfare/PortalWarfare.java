@@ -2,11 +2,9 @@ package com.ftwinston.KillerMinecraft.Modules.PortalWarfare;
 
 import java.util.ArrayList;
 
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.block.Block;
@@ -114,13 +112,13 @@ public class PortalWarfare extends GameMode
 		objective.setDisplaySlot(DisplaySlot.SIDEBAR);
 		objective.setDisplayName("Core strength");
 		
-		OfflinePlayer fake = Bukkit.getServer().getOfflinePlayer(redTeam.getChatColor() + redTeam.getName());
-		Score score = objective.getScore(fake);
+		String name = redTeam.getChatColor() + redTeam.getName();
+		Score score = objective.getScore(name);
 		score.setScore(25);
 		redTeam.score = score;
 		
-		fake = Bukkit.getServer().getOfflinePlayer(blueTeam.getChatColor() + blueTeam.getName());
-		score = objective.getScore(fake);
+		name = blueTeam.getChatColor() + blueTeam.getName();
+		score = objective.getScore(name);
 		score.setScore(25);
 		blueTeam.score = score;
 		
@@ -325,6 +323,7 @@ public class PortalWarfare extends GameMode
 			event.setCancelled(true);
 	}
 	
+	@SuppressWarnings("deprecation")
 	@Override
 	protected void gameStarted() {
 		// create "cores" ... first, pick a location near to the spawn
