@@ -16,7 +16,7 @@ import com.ftwinston.KillerMinecraft.GameModePlugin;
 public class Plugin extends GameModePlugin
 {
 	@Override
-	public Material getMenuIcon() { return Material.PORTAL; }
+	public Material getMenuIcon() { return Material.OBSIDIAN; }
 	
 	@Override
 	public String[] getDescriptionText() { return new String[] {"Two teams, each in their own worlds,", "connected by portals. Players must", "defend their own \"core\" block,", "while trying to destroy the enemy's."}; }
