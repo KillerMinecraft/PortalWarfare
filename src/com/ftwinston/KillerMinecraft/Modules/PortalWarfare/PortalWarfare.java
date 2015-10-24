@@ -40,12 +40,7 @@ public class PortalWarfare extends GameMode
 	@Override
 	public int getMinPlayers() { return 2; } // one player on each team is our minimum
 	
-	abstract class PortalTeamInfo extends TeamInfo
-	{
-		public Score score;
-	}
-	
-	PortalTeamInfo redTeam = new PortalTeamInfo() {
+	TeamInfo redTeam = new TeamInfo() {
 		@Override
 		public String getName() { return "red team"; }
 		@Override
@@ -53,7 +48,7 @@ public class PortalWarfare extends GameMode
 		@Override
 		public byte getWoolColor() { return (byte)0xE; }
 	};
-	PortalTeamInfo blueTeam = new PortalTeamInfo() {
+	TeamInfo blueTeam = new TeamInfo() {
 		@Override
 		public String getName() { return "blue team"; }
 		@Override
@@ -62,7 +57,7 @@ public class PortalWarfare extends GameMode
 		public byte getWoolColor() { return (byte)0xB; }
 	};
 	
-	PortalTeamInfo[] teams = new PortalTeamInfo[] { redTeam, blueTeam };
+	TeamInfo[] teams = new TeamInfo[] { redTeam, blueTeam };
 	
 	public PortalWarfare()
 	{
@@ -72,7 +67,7 @@ public class PortalWarfare extends GameMode
 	@Override
 	public Option[] setupOptions()
 	{
-		allowDimensionalPicks = new ToggleOption("Allow 'Dimensional' pick axes", true, "A pickaxe that breaks blocks", "in both worlds simultaneously.", "To build, craft an obsidian pickaxe.");
+		allowDimensionalPicks = new ToggleOption("Allow 'Dimensional' pickaxes", true, "A pickaxe that breaks blocks", "in both worlds simultaneously.", "To build, craft an obsidian pickaxe.");
 		
 		Option[] options = { allowDimensionalPicks };
 		
@@ -87,14 +82,16 @@ public class PortalWarfare extends GameMode
 			case 0:
 				return "Each team spawns in their own world. The worlds are identical.";
 			case 1:
-				return "Near each spawn is a small team-colored fort, with an emerald block on top.";
+				return "Near each spawn is a small team-colored fort, with an emerald \"core block\" block on top.";
 			case 2:
-				return "Destroying the other team's emerald decreases their score. When it reaches zero, the other team wins.";
+				return "Destroying the other team's core block decreases their score. When it reaches zero, the other team wins.";
 			case 3:
 				return "Move between the two worlds by building a nether portal. Portals emerge in the exact same location in the other world.";
 			case 4:
-				return "Players will receive a warning message when a portal is created, telling them the location.";
+				return "Portals are one-way, and a warning message will be shown when a portal is created, telling everyone the location.";
 			case 5:
+				return "You can destroy a portal by breaking its \"exit\" frame. There is no 'visible' portal inside an exit frame.";
+			case 6:
 				return allowDimensionalPicks.isEnabled() ? "Craft a 'dimensional' pick using obsidian. This breaks blocks in both worlds when used!" : null;
 			default:
 				return null;
@@ -115,12 +112,12 @@ public class PortalWarfare extends GameMode
 		String name = redTeam.getChatColor() + redTeam.getName();
 		Score score = objective.getScore(name);
 		score.setScore(25);
-		redTeam.score = score;
+		redTeam.setScoreboardScore(score);
 		
 		name = blueTeam.getChatColor() + blueTeam.getName();
 		score = objective.getScore(name);
 		score.setScore(25);
-		blueTeam.score = score;
+		blueTeam.setScoreboardScore(score);
 		
 		return scoreboard;
 	}
@@ -163,43 +160,39 @@ public class PortalWarfare extends GameMode
 		return world == getWorld(0) ? redTeam : blueTeam;
 	}
 	
-	boolean creatingPortal = false;
-	
 	@EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
 	public void onPortalCreated(org.bukkit.event.world.PortalCreateEvent event)
 	{
-		if ( creatingPortal || event.getReason() == CreateReason.OBC_DESTINATION )
+		if (event.getReason() == CreateReason.OBC_DESTINATION)
 		{
-			Block b = event.getBlocks().get(0);
-			broadcastMessage("Warning! Portal created at " + b.getX() + ", " + b.getY() + ", " + b.getZ());
 			return;
 		}
 		
-		creatingPortal = true;
+		World fromWorld = event.getWorld();
+		World toWorld = getOtherWorld(fromWorld);
+		TeamInfo fromTeam = getTeamForWorld(fromWorld);
+		TeamInfo toTeam = getTeamForWorld(toWorld);
+
+		Block bReport = event.getBlocks().get(0);
+		broadcastMessage("Warning! Portal created from " + fromTeam.getChatColor() + fromTeam.getName() + ChatColor.RESET + "'s world to " + toTeam.getChatColor() + toTeam.getName() + ChatColor.RESET + " at " + bReport.getX() + ", " + bReport.getY() + ", " + bReport.getZ());
 		
-		// we want to create exit portals when the entrance is created, not when a portal is used
+		// we want to create "exit portals" when the entrance is created, not when a portal is used
 		// we also want to create them in EXACTLY the same place, which i can't seem to achieve using the built in stuff
 
-		World toWorld = getOtherWorld(event.getWorld());
-		
 		// look through all the blocks returned by the event, decide if they're portal or frame, and also 
 		// whether the portal faces north/south or east/west, for what data value to set
 		
 		boolean northSouth = false;
-		Block fireBlock = null, test1 = null, test2 = null;
-		ArrayList<Block> portalBlocks = new ArrayList<Block>(), obsidianBlocks = new ArrayList<Block>(); 
+		Block test1 = null, test2 = null;
+		ArrayList<Block> airBlocks = new ArrayList<Block>(), frameBlocks = new ArrayList<Block>();
 		for ( Block b : event.getBlocks() )
 		{
-			// corresponding block in other world should become portal
 			Block dest = toWorld.getBlockAt(b.getLocation());
 			if ( b.getType() == Material.OBSIDIAN )
-				obsidianBlocks.add(dest);
+				frameBlocks.add(dest);
 			else // air or fire
 			{
-				if ( b.getType() == Material.FIRE )
-					fireBlock = dest;
-				
-				portalBlocks.add(dest);
+				airBlocks.add(dest);
 				if ( test1 == null )
 					test1 = dest;
 				else if ( test2 == null )
@@ -216,14 +209,10 @@ public class PortalWarfare extends GameMode
 			}
 		}
 		
-		// place the frame
-		for ( Block b : obsidianBlocks )
-			b.setType(Material.OBSIDIAN);
-						
 		// place air blocks inside, as well as in front of & behind the frame
-		for ( Block b : portalBlocks )
+		for ( Block b : airBlocks )
 		{	
-			b.setType(Material.PORTAL);
+			b.setType(Material.AIR);
 			
 			if ( northSouth )
 			{
@@ -236,12 +225,44 @@ public class PortalWarfare extends GameMode
 				setBlockIfNotCore(b.getRelative(BlockFace.WEST), Material.AIR);
 			}
 		}
-			
-		// then place the fire block that activates the portal
-		if ( fireBlock != null )
-			fireBlock.setType(Material.FIRE);
 		
-		creatingPortal = false;
+		// corresponding block in other world should become "exit portal"
+		Location minBound = frameBlocks.get(0).getLocation();
+		Location maxBound = frameBlocks.get(0).getLocation();
+		for (Block b : frameBlocks)
+		{
+			b.setType(Material.ENDER_STONE);
+			
+			if (b.getX() < minBound.getBlockX())
+				minBound.setX(b.getX());
+			if (b.getX() > maxBound.getBlockX())
+				maxBound.setX(b.getX());
+
+			if (b.getY() < minBound.getBlockY())
+				minBound.setY(b.getY());
+			if (b.getY() > maxBound.getBlockY())
+				maxBound.setY(b.getY());
+
+			if (b.getZ() < minBound.getBlockZ())
+				minBound.setZ(b.getZ());
+			if (b.getZ() > maxBound.getBlockZ())
+				maxBound.setZ(b.getZ());
+		}
+		
+		// the event no longer seems to include the "bottom row" of the portal frame blocks, so we need to add those
+		int y = minBound.getBlockY() - 1;
+		if (northSouth)
+		{
+			int z = minBound.getBlockZ();
+			for (int x = minBound.getBlockX(); x <= maxBound.getBlockX(); x++)
+				toWorld.getBlockAt(x, y, z).setType(Material.ENDER_STONE);
+		}
+		else
+		{
+			int x = minBound.getBlockX();
+			for (int z = minBound.getBlockZ(); z <= maxBound.getBlockZ(); z++)
+				toWorld.getBlockAt(x, y, z).setType(Material.ENDER_STONE);
+		}
 	}
 	
 	private void setBlockIfNotCore(Block b, Material type)
@@ -270,41 +291,32 @@ public class PortalWarfare extends GameMode
 		{		
 			if ( b.getX() == coreBlockX && b.getZ() == coreBlockZ && b.getY() == coreBlockY )
 			{
-				PortalTeamInfo team = (PortalTeamInfo)getTeamForWorld(event.getBlock().getWorld());
-				if ( b.getType() != coreMaterial || team.score.getScore() <= 0 )
+				TeamInfo team = getTeamForWorld(event.getBlock().getWorld());
+				if ( b.getType() != coreMaterial || team.getScoreboardScore().getScore() <= 0 )
 					return;
 				
-				int score = team.score.getScore() - 1;
-				team.score.setScore(score);
+				int score = team.getScoreboardScore().getScore() - 1;
+				team.getScoreboardScore().setScore(score);
 				if ( score < 1 )
 					finishGame();
 				else
 					event.setCancelled(true);
-				
-				return;
 			}
-		}
-		
-		
-		if ( b.getType() == Material.PORTAL )
-		{
-			// portal was broken (by creative mode) ... break the corresponding portal in the other world
-			getOtherWorldBlock(event.getBlock()).setType(Material.AIR);
+			
 			return;
 		}
-		else if ( b.getType() == Material.OBSIDIAN ) 
+		
+		if (b.getType() == Material.ENDER_STONE)
 		{
-			// if this was part of a portal frame, break the corresponding block in other world
-			if ( b.getRelative(BlockFace.NORTH).getType() == Material.PORTAL
-			  || b.getRelative(BlockFace.SOUTH).getType() == Material.PORTAL
-			  || b.getRelative(BlockFace.EAST).getType() == Material.PORTAL
-			  || b.getRelative(BlockFace.WEST).getType() == Material.PORTAL
-			  || b.getRelative(BlockFace.UP).getType() == Material.PORTAL
-			  || b.getRelative(BlockFace.DOWN).getType() == Material.PORTAL )
-			{
-				getOtherWorldBlock(event.getBlock()).setType(Material.AIR);
-				return;
-			}
+			// portal "exit frame" was broken. break the corresponding block in the other world
+			Block otherBlock = getOtherWorldBlock(event.getBlock());
+			if (otherBlock.getType() == Material.OBSIDIAN)
+				otherBlock.setType(Material.AIR);
+			
+			// prevent from dropping actual block
+			b.setType(Material.AIR);
+			event.setCancelled(true);
+			return;
 		}
 		
 		// if broken with a dimensional pick, break the corresponding block in other world
@@ -332,6 +344,8 @@ public class PortalWarfare extends GameMode
 		loc.setY(getWorld(0).getHighestBlockYAt(loc.getBlockX(), loc.getBlockZ()) + 2);
 		
 		coreBlockX = loc.getBlockX(); coreBlockY = loc.getBlockY(); coreBlockZ = loc.getBlockZ();
+		
+		broadcastMessage("The core blocks are at " + coreBlockX + ", " + coreBlockY + ", " + coreBlockZ + " in each world.");
 		
 		// create the core block and surround it with a wee bit of a fort
 		World[] worlds = new World[] { getWorld(0), getWorld(1) };
@@ -388,7 +402,7 @@ public class PortalWarfare extends GameMode
 			{
 				int y = coreBlockY - 6;
 				Block b = world.getBlockAt(xs[j], y, zs[j]);
-				while ( y > 0 && (b.isEmpty() || b.isLiquid()) )
+				while ( y > 0 && (b.isEmpty() || b.isLiquid() || b.getType() == Material.GRASS || b.getType() == Material.LONG_GRASS || b.getType() == Material.LEAVES) )
 				{
 					b.setType(fortMaterial);
 					b.setData(team.getWoolColor());
@@ -402,9 +416,9 @@ public class PortalWarfare extends GameMode
 	@Override
 	protected void gameFinished()
 	{
-		if ( redTeam.score.getScore() <= 0 )
+		if ( redTeam.getScoreboardScore().getScore() <= 0 )
 			broadcastMessage("The " + blueTeam.getChatColor() + "blue team " + ChatColor.RESET + " destroyed the red core, and win the game!");
-		else if ( blueTeam.score.getScore() <= 0 )
+		else if ( blueTeam.getScoreboardScore().getScore() <= 0 )
 			broadcastMessage("The " + redTeam.getChatColor() + "red team " + ChatColor.RESET + "destroyed the blue core, and win the game!");
 		else
 			broadcastMessage("Game drawn.");
