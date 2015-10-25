@@ -254,13 +254,13 @@ public class PortalWarfare extends GameMode
 		if (northSouth)
 		{
 			int z = minBound.getBlockZ();
-			for (int x = minBound.getBlockX(); x <= maxBound.getBlockX(); x++)
+			for (int x = minBound.getBlockX() + 1; x < maxBound.getBlockX(); x++)
 				toWorld.getBlockAt(x, y, z).setType(Material.ENDER_STONE);
 		}
 		else
 		{
 			int x = minBound.getBlockX();
-			for (int z = minBound.getBlockZ(); z <= maxBound.getBlockZ(); z++)
+			for (int z = minBound.getBlockZ() + 1; z < maxBound.getBlockZ(); z++)
 				toWorld.getBlockAt(x, y, z).setType(Material.ENDER_STONE);
 		}
 	}
