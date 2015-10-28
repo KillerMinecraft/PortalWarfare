@@ -1,8 +1,11 @@
 package com.ftwinston.KillerMinecraft.Modules.PortalWarfare;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.bukkit.ChatColor;
+import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -46,7 +49,7 @@ public class PortalWarfare extends GameMode
 		@Override
 		public ChatColor getChatColor() { return ChatColor.RED; }
 		@Override
-		public byte getWoolColor() { return (byte)0xE; }
+		public DyeColor getDyeColor() { return DyeColor.RED; }
 	};
 	TeamInfo blueTeam = new TeamInfo() {
 		@Override
@@ -54,7 +57,7 @@ public class PortalWarfare extends GameMode
 		@Override
 		public ChatColor getChatColor() { return ChatColor.BLUE; }
 		@Override
-		public byte getWoolColor() { return (byte)0xB; }
+		public DyeColor getDyeColor() { return DyeColor.BLUE; }
 	};
 	
 	TeamInfo[] teams = new TeamInfo[] { redTeam, blueTeam };
@@ -75,27 +78,20 @@ public class PortalWarfare extends GameMode
 	}
 	
 	@Override
-	public String getHelpMessage(int num, TeamInfo team)
+	public List<String> getHelpMessages(TeamInfo team)
 	{
-		switch ( num )
-		{
-			case 0:
-				return "Each team spawns in their own world. The worlds are identical.";
-			case 1:
-				return "Near each spawn is a small team-colored fort, with an emerald \"core block\" block on top.";
-			case 2:
-				return "Destroying the other team's core block decreases their score. When it reaches zero, the other team wins.";
-			case 3:
-				return "Move between the two worlds by building a nether portal. Portals emerge in the exact same location in the other world.";
-			case 4:
-				return "Portals are one-way, and a warning message will be shown when a portal is created, telling everyone the location.";
-			case 5:
-				return "You can destroy a portal by breaking its \"exit\" frame. There is no 'visible' portal inside an exit frame.";
-			case 6:
-				return allowDimensionalPicks.isEnabled() ? "Craft a 'dimensional' pick using obsidian. This breaks blocks in both worlds when used!" : null;
-			default:
-				return null;
-		}
+		LinkedList<String> messages = new LinkedList<String>();
+		messages.add("Each team spawns in their own world. The worlds are identical.");
+		messages.add("Near each spawn is a small team-colored fort, with an emerald \"core block\" block on top.");
+		messages.add("Destroying the other team's core block decreases their score. When it reaches zero, the other team wins.");
+		messages.add("Move between the two worlds by building a nether portal. Portals emerge in the exact same location in the other world.");
+		messages.add("Portals are one-way, and a warning message will be shown when a portal is created, telling everyone the location.");
+		messages.add("You can destroy a portal by breaking its \"exit\" frame. There is no 'visible' portal inside an exit frame.");
+		
+		if (allowDimensionalPicks.isEnabled())
+			messages.add("Craft a 'dimensional' pick using obsidian. This breaks blocks in both worlds when used!");
+
+		return messages;
 	}
 	
 	Objective objective;
@@ -371,29 +367,29 @@ public class PortalWarfare extends GameMode
 					{
 						Block b = world.getBlockAt(x, y, z);
 						b.setType(fortMaterial);
-						b.setData(team.getWoolColor());
+						b.setData(team.getDyeColor().getWoolData());
 					}
 			
 			for ( int x = coreBlockX - 3; x <= coreBlockX + 3; x ++)
 			{
 				Block b = world.getBlockAt(x, coreBlockY-2, coreBlockZ - 3);
 				b.setType(fortMaterial);
-				b.setData(team.getWoolColor());
+				b.setData(team.getDyeColor().getWoolData());
 				
 				b = world.getBlockAt(x, coreBlockY-2, coreBlockZ + 3);
 				b.setType(fortMaterial);
-				b.setData(team.getWoolColor());
+				b.setData(team.getDyeColor().getWoolData());
 			}
 			
 			for ( int z = coreBlockZ - 3; z <= coreBlockZ + 3; z ++)
 			{
 				Block b = world.getBlockAt(coreBlockX - 3, coreBlockY-2, z);
 				b.setType(fortMaterial);
-				b.setData(team.getWoolColor());
+				b.setData(team.getDyeColor().getWoolData());
 				
 				b = world.getBlockAt(coreBlockX + 3, coreBlockY-2, z);
 				b.setType(fortMaterial);
-				b.setData(team.getWoolColor());
+				b.setData(team.getDyeColor().getWoolData());
 			}
 			
 			int[] xs = new int[] { coreBlockX - 3, coreBlockX + 3, coreBlockX - 3, coreBlockX + 3 }, zs = new int[] { coreBlockZ + 3, coreBlockZ + 3, coreBlockZ - 3, coreBlockZ - 3 }; 
@@ -405,7 +401,7 @@ public class PortalWarfare extends GameMode
 				while ( y > 0 && (b.isEmpty() || b.isLiquid() || b.getType() == Material.GRASS || b.getType() == Material.LONG_GRASS || b.getType() == Material.LEAVES) )
 				{
 					b.setType(fortMaterial);
-					b.setData(team.getWoolColor());
+					b.setData(team.getDyeColor().getWoolData());
 					y--;
 					b = world.getBlockAt(xs[j], y, zs[j]);
 				}
